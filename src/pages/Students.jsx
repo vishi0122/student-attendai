@@ -186,11 +186,13 @@ const Students = () => {
       try {
         const filters = {};
         if (selectedSection !== 'all') filters.section = selectedSection;
+        console.log('Loading students with filters:', filters);
         const data = await getStudents(filters);
+        console.log('Students loaded:', data);
         setStudents(data);
       } catch (err) {
         console.error('Failed to load students:', err);
-        alert('Failed to load students. Please try again.');
+        alert('Failed to load students. Check console for errors.');
       } finally {
         setLoading(false);
       }

@@ -8,13 +8,25 @@ import { db } from './firebase';
 // ─── STUDENTS ────────────────────────────────────────────────────────────────
 
 export const getStudents = async (filters = {}) => {
-  let q = collection(db, 'students');
-  const constraints = [];
-  if (filters.section) constraints.push(where('section', '==', filters.section));
-  if (filters.institution) constraints.push(where('institution', '==', filters.institution));
-  if (constraints.length) q = query(q, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  try {
+    let q = collection(db, 'students');
+    const constraints = [];
+    if (filters.section) constraints.push(where('section', '==', filters.section));
+    if (filters.institution) constraints.push(where('institution', '==', filters.institution));
+    if (constraints.length) {
+      q = query(q, ...constraints);
+    } else {
+      // No filters — get all students
+      q = query(collection(db, 'students'), orderBy('name'));
+    }
+    const snap = await getDocs(q);
+    const students = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    console.log(`Loaded ${students.length} students`, students);
+    return students;
+  } catch (err) {
+    console.error('Error loading students:', err);
+    throw err;
+  }
 };
 
 export const getStudentByUID = async (uid) => {
