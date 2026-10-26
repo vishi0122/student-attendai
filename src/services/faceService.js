@@ -37,8 +37,20 @@ export const disposeModels = () => {
 
 // Single descriptor from video element with timeout and tensor cleanup
 export const getFaceDescriptor = async (videoEl, timeoutMs = 5000) => {
-  if (!videoEl || videoEl.readyState !== 2) {
-    return null; // Video not ready
+  if (!videoEl) {
+    return null; // No video element
+  }
+
+  // Wait for video to be ready if needed (allow any ready state >= 1)
+  if (videoEl.readyState < 1) {
+    console.warn('⚠️ Video not ready yet, waiting...');
+    await new Promise(resolve => {
+      const checkReady = () => {
+        if (videoEl.readyState >= 1) resolve();
+        else setTimeout(checkReady, 100);
+      };
+      checkReady();
+    });
   }
 
   try {
@@ -54,7 +66,10 @@ export const getFaceDescriptor = async (videoEl, timeoutMs = 5000) => {
 
     const detection = await Promise.race([detectionPromise, timeoutPromise]);
     
-    if (!detection) return null;
+    if (!detection) {
+      console.debug('ℹ️ No face detected in current frame');
+      return null;
+    }
 
     // Extract descriptor and convert to plain array to prevent tensor memory leaks
     const descriptor = detection.descriptor ? Float32Array.from(detection.descriptor) : null;
@@ -65,7 +80,9 @@ export const getFaceDescriptor = async (videoEl, timeoutMs = 5000) => {
     return descriptor;
   } catch (err) {
     if (err.message === 'Face detection timeout') {
-      console.warn('⚠️ Face detection timeout - video stream may be frozen');
+      console.warn('⚠️ Face detection timeout - video stream may be frozen or face-api models failed to load');
+    } else {
+      console.warn('⚠️ Face detection error:', err.message);
     }
     return null;
   }

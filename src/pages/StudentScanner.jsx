@@ -102,21 +102,26 @@ const StudentScanner = () => {
         
         faceIntervalRef.current = setInterval(async () => {
           if (!videoRef.current) return;
-          const live = await getFaceDescriptor(videoRef.current);
-          if (!live) {
-            setFaceMessage('No face detected — look directly at the camera.');
-            return;
-          }
-          const result = compareFacesMulti(live, storedList);
-          if (result.match) {
-            clearInterval(faceIntervalRef.current); // ⚠️ Clear interval immediately on match
-            faceIntervalRef.current = null;
-            stopFaceCamera();
-            setFaceStatus('success');
-            setFaceMessage(`Identity verified! (distance: ${result.distance})`);
-            setTimeout(() => setStep('scan'), 1200);
-          } else {
-            setFaceMessage(`Verifying... best distance: ${result.distance} (need < 0.5)`);
+          try {
+            const live = await getFaceDescriptor(videoRef.current);
+            if (!live) {
+              setFaceMessage('No face detected — look directly at the camera. Check lighting and position.');
+              return;
+            }
+            const result = compareFacesMulti(live, storedList);
+            if (result.match) {
+              clearInterval(faceIntervalRef.current); // ⚠️ Clear interval immediately on match
+              faceIntervalRef.current = null;
+              stopFaceCamera();
+              setFaceStatus('success');
+              setFaceMessage(`Identity verified! (distance: ${result.distance})`);
+              setTimeout(() => setStep('scan'), 1200);
+            } else {
+              setFaceMessage(`Verifying... best distance: ${result.distance} (need < 0.5). Hold steady...`);
+            }
+          } catch (err) {
+            console.error('Face verification error:', err);
+            setFaceMessage(`Verification error: ${err.message}. Please try again.`);
           }
         }, 1500);
       }, 150);
